@@ -13,9 +13,34 @@ class KeyboardController:
         self.pitch_speed = 0.8     # pitch rotation speed (R/F)
         self.max_thrust = 12.0     # maximum thrust per motor
 
+    def print_image_key_l(self): #added, return input
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_l]:
+            return True
+        return False
+
+    def print_image_key_k(self): #added, return input for YOLO processing 
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_k]:
+            return True
+        return False
+        
+    def flashlights_on_off_b(self): #added, da implementare 
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_b]:
+            return True
+        return False
+    
+    def spawn_prop_key_p(self): #addes, to spawn prop  
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_p]:
+            return True
+        return False
+
     def get_command(self):
         pygame.event.pump()
         keys = pygame.key.get_pressed()
+
         cmd = np.zeros(8, dtype=float)
 
         # --- Heave control (↑ / ↓) - vertical motion using thrusters 0..3 ---

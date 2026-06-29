@@ -204,4 +204,3 @@ print(custom_sonar.to_dict())
 ## License
 
 MIT License — see the `LICENSE` file for details.
-
