@@ -31,11 +31,17 @@ class KeyboardController:
             return True
         return False
     
-    def spawn_prop_key_p(self): #addes, to spawn prop  
+    def spawn_prop_key_p(self): #added, to spawn prop in a dynamic location and orientation
         keys = pygame.key.get_pressed()
         if keys[pygame.K_p]:
             return True
         return False
+
+    def spawn_prop_key_o(self): #added, to spawn prop in a fixed orientation
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_o]:
+                return True
+            return False
 
     def get_command(self):
         pygame.event.pump()

@@ -57,6 +57,7 @@ def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
         ritardoInputCameraYOLO = True
         ritardoTimeCameraYOLO = time.time()
         img6 = state["FrontCamera"]
+        img6 = state["DownCamera"]
         if img6 is not None:
             img6 = np.asarray(img6)
             if img6.ndim == 3 and img6.shape[2] >= 3:
@@ -64,16 +65,16 @@ def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
                 # Convert float images to uint8 if needed, the "normal" OpenCV image format
             if img6.dtype != np.uint8:
                 img6 = np.clip(img6 * 255.0, 0, 255).astype(np.uint8)
-            # cv2.imshow("fotografia front", img6)
+            # cv2.imshow("Accuracy runtime", img6)
         result_w_bound_box = yolo.detect_nosave(img6)
-        cv2.imshow("fotografia front", result_w_bound_box)
+        cv2.imshow("Accuracy runtime", result_w_bound_box)
     return ritardoInputCameraYOLO, ritardoTimeCameraYOLO
 
 # ---------- TEST SECTION out While end
 #TODO 
 scenario = (
     ScenarioConfig("BlueROV_CustomOctree")
-    .set_world(World.Dam) #Rooms PierHarbor Dam 
+    .set_world(World.PierHarbor) #Rooms PierHarbor Dam 
     .add_agent(rov0)
 )
 
@@ -102,15 +103,17 @@ with holoocean.make(
     
 #TODO modificare
     #frontal, per compensare al problema
-    env.spawn_prop(prop_type="sphere",location=[0,0,-3],rotation=[0.0,0.0,0.0],
+    env.spawn_prop(prop_type="sphere",location=[0,0,-3],rotation=[0.0,0.0,90.0],
                    scale=[0.3,0.01,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
+   # env.spawn_prop(prop_type="cylinder",location=[1,0,-3],rotation=[0.0,0.0,0.0],
+    #               scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
     
    # environment manager , gestisco torbidità dentro la simulazione
    # env.water_fog(fogDensity=6.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0) #x opacità acqua 0<fogDensity<10
     env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #per raccogliere i dati
-   # env.change_weather(2) #0 - sunny, 1 - cloudy, and 2 - rainy
+    env.change_weather(0) #0 - sunny, 1 - cloudy, and 2 - rainy
    # env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
-   # env.air_fog(0.8,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
+    env.air_fog(0.8,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
    # env.turn_on_flashlight("flashlight1",100000,80) #intensity(0,100000) angle_pitch(-70,70) angle_yaw(-70,70)
    # env.turn_off_flashlight("flashlight2")
     env.change_time_of_day(12)
@@ -138,7 +141,7 @@ with holoocean.make(
         }
 
         show_camera(state, "FrontCamera", "Front Camera")  
-        #show_camera(state, "DownCamera", "Down Camera") # Top-to-bottom view, uso questo
+        show_camera(state, "DownCamera", "Down Camera") # Top-to-bottom view, uso questo
 
        # ---------- TEST SECTION in While
 
@@ -154,8 +157,8 @@ with holoocean.make(
             if ritardoInput == False:
                 ritardoInput = True                 
                 ritardoTime = time.time()
-                #img6 = state["DownCamera"]
-                img6 = state["FrontCamera"]
+                img6 = state["DownCamera"]
+               # img6 = state["FrontCamera"]
                 if img6 is not None:
                     img6 = np.asarray(img6)
                     if img6.ndim == 3 and img6.shape[2] >= 3:
@@ -172,7 +175,7 @@ with holoocean.make(
             if ritardoInput == False:
                 ritardoInput = True
                 ritardoTime = time.time()
-                img6 = state["FrontCamera"]
+               # img6 = state["FrontCamera"]
                 if img6 is not None:
                     img6 = np.asarray(img6)
                     if img6.ndim == 3 and img6.shape[2] >= 3:
@@ -182,9 +185,24 @@ with holoocean.make(
                         img6 = np.clip(img6 * 255.0, 0, 255).astype(np.uint8)
                     screenSessione = screenSessione + 1
                     print("Immagine ",screenSessione," scattata")
-                   # cv2.imshow("fotografia front", img6)
+                   # cv2.imshow("Accuracy runtime", img6)
                 result_w_bound_box = yolo.detect(img6)
-                cv2.imshow("fotografia front", result_w_bound_box)
+                cv2.imshow("Accuracy runtime", result_w_bound_box)
+
+        if controller.spawn_prop_key_o():
+            if ritardoInput == False:
+                ritardoInput = True
+                ritardoTime = time.time()
+                rovPos = parse_pose(last.get("Pose"))['pos'] # coordinate del rover, aggiungere round(rovPos[a],b) per una precisione meno accurata
+                rovPos = {
+                    "x": rovPos[0],
+                    "y": rovPos[1],
+                    "z": rovPos[2]
+                }
+                env.spawn_prop(prop_type="cylinder", #box sphere cylinder cone 
+                                location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
+                                rotation=[0.0,0.0,0.0],
+                                scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
 
         if controller.spawn_prop_key_p():
             if ritardoInput == False:
@@ -192,7 +210,7 @@ with holoocean.make(
                 ritardoTime = time.time()
                 rovRPY = parse_pose(last.get("Pose"))['rpy'] # coordinate del roll,pitch,yaw, aggiungere round(rovPos[a],b) per una precisione meno accurata
                 rovPos = parse_pose(last.get("Pose"))['pos'] # coordinate del rover, aggiungere round(rovPos[a],b) per una precisione meno accurata
-                d = 2
+                d = 1 # cofattore di distanza dalla camera 
                 rovPos = {
                     "x": rovPos[0],
                     "y": rovPos[1],
@@ -214,7 +232,7 @@ with holoocean.make(
                                rotation=[round(rovRPY[0]),round(rovRPY[1]),round(rovRPY[2])],  # REGISTRA LA ROTAZIONE SBAGLIATA 
                                scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
         
-        # ritardoInputCameraYOLO, ritardoTimeCameraYOLO = camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO)
+        ritardoInputCameraYOLO, ritardoTimeCameraYOLO = camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO)
 
         if controller.flashlights_on_off_b():
             if ritardoInput == False:

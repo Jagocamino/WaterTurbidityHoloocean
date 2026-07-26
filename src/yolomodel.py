@@ -7,7 +7,7 @@ class YoloModel:
     def init_yolo_model(self):
         # Load a pretrained YOLO model (recommended for training)
         # self.model = YOLO("yolo26n.pt")
-        self.model = YOLO("./rete_custom_trained/model_0/my_model.pt")
+        self.model = YOLO("./rete_custom_trained/model_1/my_model.pt")
         self.class_names = self.model.names
 
     def detect(self, image):
@@ -24,7 +24,7 @@ class YoloModel:
     
     def detect_nosave(self, image):
        # conf= rappresenta il grado minimo di precisione dell'oggetto detectato, iou=0.9 per ridurre gli elementi overlappati
-        results  = self.model.predict(source=image, save=False, imgsz=320, conf=0.10, iou=0.3, verbose=False)
+        results  = self.model.predict(source=image, save=False, imgsz=320, conf=0.005, iou=0.4, verbose=False)
         for result in results:
             bbox_list = result.boxes.xyxy.tolist()          # bounding boxes all objects, you can also get xywh with boxes.xywh
             clss_list = result.boxes.cls.int().tolist()     # class index all objects
