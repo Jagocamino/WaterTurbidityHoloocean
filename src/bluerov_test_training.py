@@ -10,7 +10,6 @@ from lib.rover import Rover
 from utils.sonar_viz import PolarSonarVisualizer
 from utils.camera_viz import show_camera
 from yolomodel import YoloModel
-
 from telemetry.parsing import parse_pose
 from telemetry.estimation import (
     parse_velocity,
@@ -30,7 +29,6 @@ SENSOR_MAP = {
     "Depth": "DepthSensor",
 }
 
-#TODO  
 rov0 = Rover.BlueROV2(
     name="rov0",
     location=[0, -8, -3],
@@ -51,6 +49,24 @@ ritardoTime = time.time()
 ritardoTimeCameraYOLO = time.time()
 screenSessione = 0
 boolFlashlights = False
+switchProp = True
+
+# TODO da fare 
+def distanceDetector(results, image):
+    innerBox = 0.2 # quanta percentuale dello schermo nella parte centrale si prende il box adibito al riconoscimento del disco  
+    for result in results:
+        print(result.boxes.xyxy.tolist())
+    window_sz = np.array(image.shape)
+    # window_sz[1] 0=480 (height) 1=640 (width)
+    box_dim = min(window_sz[0],window_sz[1])
+    shift = box_dim*innerBox/2
+    # i box vengono misurati con coordinate top-left,bottom-right  
+    x1 = window_sz[1]/2-shift
+    y1 = window_sz[0]/2-shift
+    x2 = window_sz[1]/2+shift
+    y2 = window_sz[0]/2+shift
+    print(f"{x1} {y1}       {x2} {y2} ")
+
 
 def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
     if ritardoInputCameraYOLO == False:
@@ -66,15 +82,17 @@ def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
             if img6.dtype != np.uint8:
                 img6 = np.clip(img6 * 255.0, 0, 255).astype(np.uint8)
             # cv2.imshow("Accuracy runtime", img6)
-        result_w_bound_box = yolo.detect_nosave(img6)
+        result_w_bound_box, results = yolo.detect_nosave(img6)
+       # distanceDetector(result_w_bound_box)
         cv2.imshow("Accuracy runtime", result_w_bound_box)
+
     return ritardoInputCameraYOLO, ritardoTimeCameraYOLO
 
 # ---------- TEST SECTION out While end
-#TODO 
+
 scenario = (
     ScenarioConfig("BlueROV_CustomOctree")
-    .set_world(World.PierHarbor) #Rooms PierHarbor Dam 
+    .set_world(World.Dam) #Rooms PierHarbor Dam 
     .add_agent(rov0)
 )
 
@@ -101,22 +119,20 @@ with holoocean.make(
     #env.spawn_prop(prop_type="sphere",location=[8,0,-5],rotation=[0.0,0.0,0.0],
                    #scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
     
-#TODO modificare
     #frontal, per compensare al problema
     env.spawn_prop(prop_type="sphere",location=[0,0,-3],rotation=[0.0,0.0,90.0],
                    scale=[0.3,0.01,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
    # env.spawn_prop(prop_type="cylinder",location=[1,0,-3],rotation=[0.0,0.0,0.0],
     #               scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
-    
    # environment manager , gestisco torbidità dentro la simulazione
-   # env.water_fog(fogDensity=6.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0) #x opacità acqua 0<fogDensity<10
-    env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #per raccogliere i dati
-    env.change_weather(0) #0 - sunny, 1 - cloudy, and 2 - rainy
-   # env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
-    env.air_fog(0.8,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
+    env.water_fog(fogDensity=6.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0) #x opacità acqua 0<fogDensity<10
+   # env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #per raccogliere i dati
+   # env.change_weather(0) #0 - sunny, 1 - cloudy, and 2 - rainy
+    env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
+    env.air_fog(fogDensity=3,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
    # env.turn_on_flashlight("flashlight1",100000,80) #intensity(0,100000) angle_pitch(-70,70) angle_yaw(-70,70)
    # env.turn_off_flashlight("flashlight2")
-    env.change_time_of_day(12)
+    env.change_time_of_day(14)
     
     last = {}
 
@@ -171,23 +187,6 @@ with holoocean.make(
                     screenSessione = screenSessione + 1
                     print("Immagine ",screenSessione," scattata")
 
-        if controller.print_image_key_k(): #salva immagine screenata con bounding box 
-            if ritardoInput == False:
-                ritardoInput = True
-                ritardoTime = time.time()
-               # img6 = state["FrontCamera"]
-                if img6 is not None:
-                    img6 = np.asarray(img6)
-                    if img6.ndim == 3 and img6.shape[2] >= 3:
-                        img6 = img6[:, :, :3]
-                        # Convert float images to uint8 if needed, the "normal" OpenCV image format
-                    if img6.dtype != np.uint8:
-                        img6 = np.clip(img6 * 255.0, 0, 255).astype(np.uint8)
-                    screenSessione = screenSessione + 1
-                    print("Immagine ",screenSessione," scattata")
-                   # cv2.imshow("Accuracy runtime", img6)
-                result_w_bound_box = yolo.detect(img6)
-                cv2.imshow("Accuracy runtime", result_w_bound_box)
 
         if controller.spawn_prop_key_o():
             if ritardoInput == False:
@@ -199,10 +198,19 @@ with holoocean.make(
                     "y": rovPos[1],
                     "z": rovPos[2]
                 }
-                env.spawn_prop(prop_type="cylinder", #box sphere cylinder cone 
-                                location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
-                                rotation=[0.0,0.0,0.0],
-                                scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
+                if switchProp == True:    
+                    env.spawn_prop(prop_type="cylinder", #box sphere cylinder cone 
+                                    location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
+                                    rotation=[0.0,0.0,0.0],
+                                    scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
+                    switchProp = False
+                else:
+                    switchProp = True
+                    env.spawn_prop(prop_type="sphere", #box sphere cylinder cone 
+                                    location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
+                                    rotation=[0.0,0.0,90.0],
+                                    scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
+                                        
 
         if controller.spawn_prop_key_p():
             if ritardoInput == False:
@@ -246,6 +254,19 @@ with holoocean.make(
                     env.turn_on_flashlight("flashlight4")
                     print("lights ON")
                 else:
+
+                   # TODO da rimuovere
+                    dapredire = state["DownCamera"]
+                    if dapredire is not None:
+                        dapredire = np.asarray(dapredire)
+                    if dapredire.ndim == 3 and dapredire.shape[2] >= 3:
+                        dapredire = dapredire[:, :, :3]
+                        # Convert float images to uint8 if needed, the "normal" OpenCV image format
+                    if dapredire.dtype != np.uint8:
+                        dapredire = np.clip(dapredire * 255.0, 0, 255).astype(np.uint8)
+                    result_w_bound_box, results = yolo.detect_nosave(dapredire)
+                    distanceDetector(results, result_w_bound_box) 
+
                     boolFlashlights = False
                     env.turn_off_flashlight("flashlight1")
                     env.turn_off_flashlight("flashlight2")

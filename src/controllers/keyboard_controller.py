@@ -18,12 +18,6 @@ class KeyboardController:
         if keys[pygame.K_l]:
             return True
         return False
-
-    def print_image_key_k(self): #added, return input for YOLO processing 
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_k]:
-            return True
-        return False
         
     def flashlights_on_off_b(self): #added, da implementare 
         keys = pygame.key.get_pressed()
