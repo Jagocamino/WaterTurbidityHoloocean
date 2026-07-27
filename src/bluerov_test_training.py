@@ -51,11 +51,20 @@ screenSessione = 0
 boolFlashlights = False
 switchProp = True
 
-# TODO da fare 
-def distanceDetector(results, image):
-    innerBox = 0.2 # quanta percentuale dello schermo nella parte centrale si prende il box adibito al riconoscimento del disco  
-    for result in results:
-        print(result.boxes.xyxy.tolist())
+for sensor in rov0.sensors:
+    if sensor.get("sensor_name") == "FrontCamera":
+        FOV = sensor["configuration"]["FOV"] 
+        break
+
+def computeDistance(oldBoundingBox, window_sz, FOV):
+    real_sz = 0.3
+    pixl_sz = oldBoundingBox[2]-oldBoundingBox[0]   
+    focal_length = window_sz[1]/(2*np.tan(np.radians(FOV)/2))
+    distance = (real_sz * focal_length)/pixl_sz
+    return distance
+
+def distanceDetector(results, image, FOV):
+    innerBox = 0.4 # quanta percentuale dello schermo nella parte centrale si prende il box adibito al riconoscimento del disco  
     window_sz = np.array(image.shape)
     # window_sz[1] 0=480 (height) 1=640 (width)
     box_dim = min(window_sz[0],window_sz[1])
@@ -65,7 +74,22 @@ def distanceDetector(results, image):
     y1 = window_sz[0]/2-shift
     x2 = window_sz[1]/2+shift
     y2 = window_sz[0]/2+shift
-    print(f"{x1} {y1}       {x2} {y2} ")
+    for result in results:
+        for bounding_box in result.boxes.xyxy.tolist():
+            xb1 = bounding_box[0]
+            yb1 = bounding_box[1]
+            xb2 = bounding_box[2]
+            yb2 = bounding_box[3] 
+            if xb1>x1 and yb1>y1 and xb2<x2 and yb2<y2:# mi salvo il primo bounding box che rispetta la condizione 
+                distanceDetector.oldBoundingBox = bounding_box
+                return 
+            # calcolo distanza della oldBoundingBox 
+    if hasattr(distanceDetector,"oldBoundingBox"):
+        if distanceDetector.oldBoundingBox is not None:
+            print("prova")
+            distance = computeDistance(distanceDetector.oldBoundingBox, window_sz, FOV)
+            print("Secchi disk distance: ",distance)
+            distanceDetector.oldBoundingBox = None
 
 
 def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
@@ -82,10 +106,11 @@ def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
             if img6.dtype != np.uint8:
                 img6 = np.clip(img6 * 255.0, 0, 255).astype(np.uint8)
             # cv2.imshow("Accuracy runtime", img6)
+           # TODO 
         result_w_bound_box, results = yolo.detect_nosave(img6)
+        distanceDetector(results, result_w_bound_box, FOV) 
        # distanceDetector(result_w_bound_box)
         cv2.imshow("Accuracy runtime", result_w_bound_box)
-
     return ritardoInputCameraYOLO, ritardoTimeCameraYOLO
 
 # ---------- TEST SECTION out While end
@@ -95,7 +120,6 @@ scenario = (
     .set_world(World.Dam) #Rooms PierHarbor Dam 
     .add_agent(rov0)
 )
-
 
 sonar_viz = PolarSonarVisualizer(
     azimuth_deg=90,
@@ -114,7 +138,11 @@ with holoocean.make(
     ticks_per_sec=30,
     frames_per_sec=True
 ) as env:
-   
+
+   # TODO
+    for sensore in rov0.sensors:
+        print(sensore) 
+    
     #secchi Disk , da usare
     #env.spawn_prop(prop_type="sphere",location=[8,0,-5],rotation=[0.0,0.0,0.0],
                    #scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
@@ -174,7 +202,6 @@ with holoocean.make(
                 ritardoInput = True                 
                 ritardoTime = time.time()
                 img6 = state["DownCamera"]
-               # img6 = state["FrontCamera"]
                 if img6 is not None:
                     img6 = np.asarray(img6)
                     if img6.ndim == 3 and img6.shape[2] >= 3:
@@ -264,17 +291,12 @@ with holoocean.make(
                         # Convert float images to uint8 if needed, the "normal" OpenCV image format
                     if dapredire.dtype != np.uint8:
                         dapredire = np.clip(dapredire * 255.0, 0, 255).astype(np.uint8)
-                    result_w_bound_box, results = yolo.detect_nosave(dapredire)
-                    distanceDetector(results, result_w_bound_box) 
-
                     boolFlashlights = False
                     env.turn_off_flashlight("flashlight1")
                     env.turn_off_flashlight("flashlight2")
                     env.turn_off_flashlight("flashlight3")
                     env.turn_off_flashlight("flashlight4")
                     print("lights OFF")
-
-
 
        # -------- END TEST SECTION in While 
 
