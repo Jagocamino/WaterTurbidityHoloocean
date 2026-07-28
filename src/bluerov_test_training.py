@@ -50,6 +50,7 @@ ritardoTimeCameraYOLO = time.time()
 screenSessione = 0
 boolFlashlights = False
 switchProp = True
+secchi_distance = None
 
 for sensor in rov0.sensors:
     if sensor.get("sensor_name") == "FrontCamera":
@@ -64,6 +65,7 @@ def computeDistance(oldBoundingBox, window_sz, FOV):
     return distance
 
 def distanceDetector(results, image, FOV):
+    global secchi_distance
     innerBox = 0.4 # quanta percentuale dello schermo nella parte centrale si prende il box adibito al riconoscimento del disco  
     window_sz = np.array(image.shape)
     # window_sz[1] 0=480 (height) 1=640 (width)
@@ -87,8 +89,8 @@ def distanceDetector(results, image, FOV):
     if hasattr(distanceDetector,"oldBoundingBox"):
         if distanceDetector.oldBoundingBox is not None:
             print("prova")
-            distance = computeDistance(distanceDetector.oldBoundingBox, window_sz, FOV)
-            print("Secchi disk distance: ",distance)
+            secchi_distance = computeDistance(distanceDetector.oldBoundingBox, window_sz, FOV)
+            print("Secchi disk distance: ",secchi_distance)
             distanceDetector.oldBoundingBox = None
 
 
@@ -108,7 +110,7 @@ def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
             # cv2.imshow("Accuracy runtime", img6)
            # TODO 
         result_w_bound_box, results = yolo.detect_nosave(img6)
-        distanceDetector(results, result_w_bound_box, FOV) 
+        turbidity = distanceDetector(results, result_w_bound_box, FOV) 
        # distanceDetector(result_w_bound_box)
         cv2.imshow("Accuracy runtime", result_w_bound_box)
     return ritardoInputCameraYOLO, ritardoTimeCameraYOLO
@@ -153,7 +155,7 @@ with holoocean.make(
    # env.spawn_prop(prop_type="cylinder",location=[1,0,-3],rotation=[0.0,0.0,0.0],
     #               scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
    # environment manager , gestisco torbidità dentro la simulazione
-    env.water_fog(fogDensity=6.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0) #x opacità acqua 0<fogDensity<10
+    env.water_fog(fogDensity=9.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0) #x opacità acqua 0<fogDensity<10
    # env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #per raccogliere i dati
    # env.change_weather(0) #0 - sunny, 1 - cloudy, and 2 - rainy
     env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
@@ -182,6 +184,7 @@ with holoocean.make(
             "under_range": estimate_depth_from_seabed(last.get("RangeFinder")),
             "motion": estimate_motion_state(last.get("IMU")),
             "collision": last.get("Collision"),
+            "secchi_depth": secchi_distance
         }
 
         show_camera(state, "FrontCamera", "Front Camera")  

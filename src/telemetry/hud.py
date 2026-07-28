@@ -39,6 +39,7 @@ def draw_telemetry_hud(data, *, window_name="Telemetry HUD"):
     under_range = data.get("under_range", None)
     motion = data.get("motion", "UNKNOWN")
     collision = bool(data.get("collision", False))
+    secchi_depth = data.get("secchi_depth", None)
 
     lines = [
         "=== ROV TELEMETRY ===",
@@ -59,6 +60,10 @@ def draw_telemetry_hud(data, *, window_name="Telemetry HUD"):
         f"Depth: {altitude:.2f} m" if isinstance(altitude, (int, float)) else "Altitude: None",
         f"Distance from seabed: {under_range:.2f} m" if isinstance(under_range, (int, float)) else "Distance from seabed: None",
         f"Motion: {motion}",
+        "",
+        (
+            f"Secchi depth: {secchi_depth:.2f} m" if isinstance(secchi_depth, (int, float)) else "No Secchi depth detected"
+        ),
         "",
         ("COLLISION DETECTED!" if collision else "Collision: none"),
         "",
