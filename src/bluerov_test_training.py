@@ -42,12 +42,13 @@ inputUnavailable = False
 predictUnavailable = False
 delayTime = time.time()
 timeCameraYOLO = time.time()
-screenSessione = 0
+screenSessione = 0 
 boolFlashlights = False
 switchProp = True
 secchi_distance = None
-delayUpdateYOLOcam = 0.2
-delayMissinput = 0.8
+delayUpdateYOLOcam = 0.2           # delay between camera predictions 
+delayMissinput = 0.8               # delay between inputs 
+innerBox = 0.4                     # how big is the tollerance margin to detect the Secchi depth  
 
 for sensor in rov0.sensors:
     if sensor.get("sensor_name") == "FrontCamera":
@@ -63,7 +64,6 @@ def computeDistance(oldBoundingBox, window_sz, FOV):
 
 def distanceDetector(results, image, FOV):
     global secchi_distance
-    innerBox = 0.4 # quanta percentuale dello schermo nella parte centrale si prende il box adibito al riconoscimento del disco  
     window_sz = np.array(image.shape)
     # window_sz[1] 0=480 (height) 1=640 (width)
     box_dim = min(window_sz[0],window_sz[1])
@@ -79,14 +79,14 @@ def distanceDetector(results, image, FOV):
             yb1 = bounding_box[1]
             xb2 = bounding_box[2]
             yb2 = bounding_box[3] 
-            if xb1>x1 and yb1>y1 and xb2<x2 and yb2<y2:# mi salvo il primo bounding box che rispetta la condizione 
+            if xb1>x1 and yb1>y1 and xb2<x2 and yb2<y2: # assuming first bounding box that fulfills condition is correct 
                 distanceDetector.oldBoundingBox = bounding_box
                 return 
             # calcolo distanza della oldBoundingBox 
     if hasattr(distanceDetector,"oldBoundingBox"):
         if distanceDetector.oldBoundingBox is not None:
             secchi_distance = computeDistance(distanceDetector.oldBoundingBox, window_sz, FOV)
-            print("Secchi disk distance: ",secchi_distance)
+            print("Secchi disk distance: ",round(secchi_distance,2),"m")
             distanceDetector.oldBoundingBox = None
 
 def camera_YOLO(state, predictUnavailable, timeCameraYOLO):
@@ -171,11 +171,11 @@ with holoocean.make(
         show_camera(state, "FrontCamera", "Front Camera")  
         show_camera(state, "DownCamera", "Down Camera") # Top-to-bottom view, uso questo
 
-        if inputUnavailable == True: # delay, no more than 1 shot per second
+        if inputUnavailable == True: # delay input
             if delayTime + delayMissinput < time.time():
                 inputUnavailable = False
         
-        if predictUnavailable == True: # delay, per la finestra YOLO
+        if predictUnavailable == True: # delay YOLO view
             if timeCameraYOLO + delayUpdateYOLOcam < time.time():
                 predictUnavailable = False
 
@@ -201,21 +201,21 @@ with holoocean.make(
             if inputUnavailable == False:
                 inputUnavailable = True
                 delayTime = time.time()
-                rovPos = parse_pose(last.get("Pose"))['pos'] # coordinate del rover, aggiungere round(rovPos[a],b) per una precisione meno accurata
+                rovPos = parse_pose(last.get("Pose"))['pos']
                 rovPos = {
                     "x": rovPos[0],
                     "y": rovPos[1],
                     "z": rovPos[2]
                 }
                 if switchProp == True:    
-                    env.spawn_prop(prop_type="cylinder", #box sphere cylinder cone 
+                    env.spawn_prop(prop_type="cylinder",
                                     location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
                                     rotation=[0.0,0.0,0.0],
                                     scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(delayTime))
                     switchProp = False
                 else:
                     switchProp = True
-                    env.spawn_prop(prop_type="sphere", #box sphere cylinder cone 
+                    env.spawn_prop(prop_type="sphere",
                                     location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
                                     rotation=[0.0,0.0,90.0],
                                     scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
@@ -225,8 +225,8 @@ with holoocean.make(
             if inputUnavailable == False:
                 inputUnavailable = True
                 delayTime = time.time()
-                rovRPY = parse_pose(last.get("Pose"))['rpy'] # coordinate del roll,pitch,yaw, aggiungere round(rovPos[a],b) per una precisione meno accurata
-                rovPos = parse_pose(last.get("Pose"))['pos'] # coordinate del rover, aggiungere round(rovPos[a],b) per una precisione meno accurata
+                rovRPY = parse_pose(last.get("Pose"))['rpy'] # coordinate roll,pitch,yaw
+                rovPos = parse_pose(last.get("Pose"))['pos'] # coordinate rover
                 d = 1 # cofattore di distanza dalla camera 
                 rovPos = {
                     "x": rovPos[0],
@@ -243,7 +243,7 @@ with holoocean.make(
                     "y": rovPos["y"] + V["y"]*d,
                     "z": rovPos["z"] + V["z"]*d
                 }
-                env.spawn_prop(prop_type="sphere", #box sphere cylinder cone 
+                env.spawn_prop(prop_type="sphere",
                                location=[newSecchiPos["x"],newSecchiPos["y"],newSecchiPos["z"]],
                                rotation=[round(rovRPY[0]),round(rovRPY[1]),round(rovRPY[2])],  # REGISTRA LA ROTAZIONE SBAGLIATA 
                                scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
