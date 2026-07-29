@@ -46,7 +46,7 @@ screenSessione = 0
 boolFlashlights = False
 switchProp = True
 secchi_distance = None
-delayUpdateYOLOcam = 0.4
+delayUpdateYOLOcam = 0.2
 delayMissinput = 0.8
 
 for sensor in rov0.sensors:
@@ -131,8 +131,8 @@ with holoocean.make(
     frames_per_sec=True
 ) as env:
         
-    env.spawn_prop(prop_type="sphere",location=[0,0,-3],rotation=[0.0,0.0,90.0],
-                   scale=[0.3,0.01,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
+   # env.spawn_prop(prop_type="sphere",location=[0,0,-3],rotation=[0.0,0.0,90.0],
+   #                scale=[0.3,0.01,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
    # env.spawn_prop(prop_type="cylinder",location=[1,0,-3],rotation=[0.0,0.0,0.0],
    #                scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(delayTime))
 
@@ -262,16 +262,6 @@ with holoocean.make(
                     env.turn_on_flashlight("flashlight4")
                     print("lights ON")
                 else:
-
-                   # TODO da rimuovere
-                    dapredire = state["DownCamera"]
-                    if dapredire is not None:
-                        dapredire = np.asarray(dapredire)
-                    if dapredire.ndim == 3 and dapredire.shape[2] >= 3:
-                        dapredire = dapredire[:, :, :3]
-                        # Convert float images to uint8 if needed, the "normal" OpenCV image format
-                    if dapredire.dtype != np.uint8:
-                        dapredire = np.clip(dapredire * 255.0, 0, 255).astype(np.uint8)
                     boolFlashlights = False
                     env.turn_off_flashlight("flashlight1")
                     env.turn_off_flashlight("flashlight2")
