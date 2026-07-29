@@ -32,25 +32,22 @@ SENSOR_MAP = {
 rov0 = Rover.BlueROV2(
     name="rov0",
     location=[0, -8, -3],
-    rotation=[0, 0, 90], # modificare yaw per orientamento 
+    rotation=[0, 0, 90], # yaw = 90 top-down view
     control_scheme=0,
 )
 
-# ---------- TEST SECTION out While
-
-def _fmt_vec3(pos): # appartenente a telemetry/hud per uniformare la posizione tridimensionale del rover, serve per il disco di Secchi 
-    return f"({pos[0]:.2f}, {pos[1]:.2f}, {pos[2]:.2f})"
-
 yolo = YoloModel()
 yolo.init_yolo_model()
-ritardoInput = False
-ritardoInputCameraYOLO = False
-ritardoTime = time.time()
-ritardoTimeCameraYOLO = time.time()
+inputUnavailable = False
+predictUnavailable = False
+delayTime = time.time()
+timeCameraYOLO = time.time()
 screenSessione = 0
 boolFlashlights = False
 switchProp = True
 secchi_distance = None
+delayUpdateYOLOcam = 0.4
+delayMissinput = 0.8
 
 for sensor in rov0.sensors:
     if sensor.get("sensor_name") == "FrontCamera":
@@ -88,16 +85,14 @@ def distanceDetector(results, image, FOV):
             # calcolo distanza della oldBoundingBox 
     if hasattr(distanceDetector,"oldBoundingBox"):
         if distanceDetector.oldBoundingBox is not None:
-            print("prova")
             secchi_distance = computeDistance(distanceDetector.oldBoundingBox, window_sz, FOV)
             print("Secchi disk distance: ",secchi_distance)
             distanceDetector.oldBoundingBox = None
 
-
-def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
-    if ritardoInputCameraYOLO == False:
-        ritardoInputCameraYOLO = True
-        ritardoTimeCameraYOLO = time.time()
+def camera_YOLO(state, predictUnavailable, timeCameraYOLO):
+    if predictUnavailable == False:
+        predictUnavailable = True
+        timeCameraYOLO = time.time()
         img6 = state["FrontCamera"]
         img6 = state["DownCamera"]
         if img6 is not None:
@@ -107,15 +102,11 @@ def camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO):
                 # Convert float images to uint8 if needed, the "normal" OpenCV image format
             if img6.dtype != np.uint8:
                 img6 = np.clip(img6 * 255.0, 0, 255).astype(np.uint8)
-            # cv2.imshow("Accuracy runtime", img6)
-           # TODO 
         result_w_bound_box, results = yolo.detect_nosave(img6)
-        turbidity = distanceDetector(results, result_w_bound_box, FOV) 
+        turbidity = distanceDetector(results, result_w_bound_box, FOV)
        # distanceDetector(result_w_bound_box)
         cv2.imshow("Accuracy runtime", result_w_bound_box)
-    return ritardoInputCameraYOLO, ritardoTimeCameraYOLO
-
-# ---------- TEST SECTION out While end
+    return predictUnavailable, timeCameraYOLO
 
 scenario = (
     ScenarioConfig("BlueROV_CustomOctree")
@@ -131,7 +122,6 @@ sonar_viz = PolarSonarVisualizer(
     ema_alpha=0.1
 )
 
-
 controller = KeyboardController()
 
 with holoocean.make(
@@ -140,28 +130,19 @@ with holoocean.make(
     ticks_per_sec=30,
     frames_per_sec=True
 ) as env:
-
-   # TODO
-    for sensore in rov0.sensors:
-        print(sensore) 
-    
-    #secchi Disk , da usare
-    #env.spawn_prop(prop_type="sphere",location=[8,0,-5],rotation=[0.0,0.0,0.0],
-                   #scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
-    
-    #frontal, per compensare al problema
+        
     env.spawn_prop(prop_type="sphere",location=[0,0,-3],rotation=[0.0,0.0,90.0],
-                   scale=[0.3,0.01,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
+                   scale=[0.3,0.01,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
    # env.spawn_prop(prop_type="cylinder",location=[1,0,-3],rotation=[0.0,0.0,0.0],
-    #               scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
-   # environment manager , gestisco torbidità dentro la simulazione
-    env.water_fog(fogDensity=9.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0) #x opacità acqua 0<fogDensity<10
-   # env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #per raccogliere i dati
+   #                scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(delayTime))
+
+   # environment manager
+    env.water_fog(fogDensity=9.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0)
+   # env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #clear water condition
    # env.change_weather(0) #0 - sunny, 1 - cloudy, and 2 - rainy
     env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
     env.air_fog(fogDensity=3,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
-   # env.turn_on_flashlight("flashlight1",100000,80) #intensity(0,100000) angle_pitch(-70,70) angle_yaw(-70,70)
-   # env.turn_off_flashlight("flashlight2")
+   # env.turn_on_flashlight("flashlight1",100000,80)
     env.change_time_of_day(14)
     
     last = {}
@@ -190,20 +171,18 @@ with holoocean.make(
         show_camera(state, "FrontCamera", "Front Camera")  
         show_camera(state, "DownCamera", "Down Camera") # Top-to-bottom view, uso questo
 
-       # ---------- TEST SECTION in While
-
-        if ritardoInput == True: # così non fa più di uno screen al secondo 
-            if ritardoTime + 0.8 < time.time():
-                ritardoInput = False
+        if inputUnavailable == True: # delay, no more than 1 shot per second
+            if delayTime + delayMissinput < time.time():
+                inputUnavailable = False
         
-        if ritardoInputCameraYOLO == True: # per la finestra YOLO
-            if ritardoTimeCameraYOLO + 0.8 < time.time():
-                ritardoInputCameraYOLO = False
+        if predictUnavailable == True: # delay, per la finestra YOLO
+            if timeCameraYOLO + delayUpdateYOLOcam < time.time():
+                predictUnavailable = False
 
         if controller.print_image_key_l():
-            if ritardoInput == False:
-                ritardoInput = True                 
-                ritardoTime = time.time()
+            if inputUnavailable == False:
+                inputUnavailable = True                 
+                delayTime = time.time()
                 img6 = state["DownCamera"]
                 if img6 is not None:
                     img6 = np.asarray(img6)
@@ -215,13 +194,13 @@ with holoocean.make(
                     percorso = f'/home/jago.camoni.STUDENTI/Documenti/HoloOceanLibrary/src/runs/camerascreens/foto_{int(time.time()*1000)}.png'
                     cv2.imwrite(percorso,img6)
                     screenSessione = screenSessione + 1
-                    print("Immagine ",screenSessione," scattata")
+                    print("Took photo ",screenSessione)
 
 
         if controller.spawn_prop_key_o():
-            if ritardoInput == False:
-                ritardoInput = True
-                ritardoTime = time.time()
+            if inputUnavailable == False:
+                inputUnavailable = True
+                delayTime = time.time()
                 rovPos = parse_pose(last.get("Pose"))['pos'] # coordinate del rover, aggiungere round(rovPos[a],b) per una precisione meno accurata
                 rovPos = {
                     "x": rovPos[0],
@@ -232,20 +211,20 @@ with holoocean.make(
                     env.spawn_prop(prop_type="cylinder", #box sphere cylinder cone 
                                     location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
                                     rotation=[0.0,0.0,0.0],
-                                    scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
+                                    scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(delayTime))
                     switchProp = False
                 else:
                     switchProp = True
                     env.spawn_prop(prop_type="sphere", #box sphere cylinder cone 
                                     location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
                                     rotation=[0.0,0.0,90.0],
-                                    scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
+                                    scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
                                         
 
-        if controller.spawn_prop_key_p():
-            if ritardoInput == False:
-                ritardoInput = True
-                ritardoTime = time.time()
+        if controller.spawn_prop_key_p(): # not working 
+            if inputUnavailable == False:
+                inputUnavailable = True
+                delayTime = time.time()
                 rovRPY = parse_pose(last.get("Pose"))['rpy'] # coordinate del roll,pitch,yaw, aggiungere round(rovPos[a],b) per una precisione meno accurata
                 rovPos = parse_pose(last.get("Pose"))['pos'] # coordinate del rover, aggiungere round(rovPos[a],b) per una precisione meno accurata
                 d = 1 # cofattore di distanza dalla camera 
@@ -264,18 +243,17 @@ with holoocean.make(
                     "y": rovPos["y"] + V["y"]*d,
                     "z": rovPos["z"] + V["z"]*d
                 }
-                print(round(rovRPY[0])," ",round(rovRPY[1])," ",round(rovRPY[2])) # DEBUG rotazione non funziona correttamente per il disco 
                 env.spawn_prop(prop_type="sphere", #box sphere cylinder cone 
                                location=[newSecchiPos["x"],newSecchiPos["y"],newSecchiPos["z"]],
                                rotation=[round(rovRPY[0]),round(rovRPY[1]),round(rovRPY[2])],  # REGISTRA LA ROTAZIONE SBAGLIATA 
-                               scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(ritardoTime))
+                               scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
         
-        ritardoInputCameraYOLO, ritardoTimeCameraYOLO = camera_YOLO(state, ritardoInputCameraYOLO, ritardoTimeCameraYOLO)
+        predictUnavailable, timeCameraYOLO = camera_YOLO(state, predictUnavailable, timeCameraYOLO)
 
         if controller.flashlights_on_off_b():
-            if ritardoInput == False:
-                ritardoInput = True
-                ritardoTime = time.time()
+            if inputUnavailable == False:
+                inputUnavailable = True
+                delayTime = time.time()
                 if boolFlashlights == False:
                     boolFlashlights = True
                     env.turn_on_flashlight("flashlight1")
@@ -300,13 +278,6 @@ with holoocean.make(
                     env.turn_off_flashlight("flashlight3")
                     env.turn_off_flashlight("flashlight4")
                     print("lights OFF")
-
-       # -------- END TEST SECTION in While 
-
-
-       # if "ImagingSonar" in state:
-       #     sonar_viz.submit(state["ImagingSonar"])
-       # sonar_viz.update_plot()
 
         draw_telemetry_hud(telemetry)
 
