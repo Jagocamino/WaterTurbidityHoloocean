@@ -2,7 +2,15 @@ import cv2
 from PIL import Image
 from ultralytics import YOLO
 
+import torch
+import torchvision.ops as ops
+from nms import use_nms
+
 class YoloModel:
+
+    conf = 0.01
+    imgsz = 320
+    iou = 0
 
     def init_yolo_model(self):
         # Load a pretrained YOLO model (recommended for training)
@@ -12,7 +20,7 @@ class YoloModel:
         self.class_names = self.model.names
 
     def detect(self, image):
-        results  = self.model.predict(source=image, save=True, imgsz=320)
+        results  = self.model.predict(source=image, save=True, imgsz=self.imgsz, conf=self.conf)
         help(self.model.predict)
         print(results)
         for result in results:
@@ -25,7 +33,11 @@ class YoloModel:
     
     def detect_nosave(self, image): # returns the image with bounding boxes and bounding boxes themself
        # conf= rappresenta il grado minimo di precisione dell'oggetto detectato, iou=0.9 per ridurre gli elementi overlappati
-        results  = self.model.predict(source=image, save=False, imgsz=320, conf=0.005, iou=0.4, verbose=False)
+       # had to rely on nms function due to iou and conf non properly working
+        results  = self.model.predict(source=image, save=False, imgsz=self.imgsz, conf=self.conf, verbose=False)
+
+        results = use_nms(results, self.conf, self.iou)
+
         for result in results:
             bbox_list = result.boxes.xyxy.tolist()          # bounding boxes all objects, you can also get xywh with boxes.xywh
             clss_list = result.boxes.cls.int().tolist()     # class index all objects

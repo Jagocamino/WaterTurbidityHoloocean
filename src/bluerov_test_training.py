@@ -9,7 +9,7 @@ from lib.worlds import World
 from lib.rover import Rover
 from utils.sonar_viz import PolarSonarVisualizer
 from utils.camera_viz import show_camera
-from yolomodel import YoloModel
+from utils.yolomodel import YoloModel
 from telemetry.parsing import parse_pose
 from telemetry.estimation import (
     parse_velocity,
