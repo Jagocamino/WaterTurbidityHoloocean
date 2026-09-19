@@ -8,6 +8,7 @@ class YoloModel:
         # Load a pretrained YOLO model (recommended for training)
         # self.model = YOLO("yolo26n.pt")
         self.model = YOLO("./rete_custom_trained/model_2/my_model.pt")
+        #self.model = YOLO("./rete_custom_trained/model_shapes/my_model.pt")
         self.class_names = self.model.names
 
     def detect(self, image):

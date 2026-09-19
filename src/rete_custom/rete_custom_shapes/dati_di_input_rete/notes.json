@@ -1,0 +1,25 @@
+{
+  "categories": [
+    {
+      "id": 0,
+      "name": "box"
+    },
+    {
+      "id": 1,
+      "name": "cone"
+    },
+    {
+      "id": 2,
+      "name": "cylinder"
+    },
+    {
+      "id": 3,
+      "name": "sphere"
+    }
+  ],
+  "info": {
+    "year": 2026,
+    "version": "1.0",
+    "contributor": "Label Studio"
+  }
+}

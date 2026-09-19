@@ -44,7 +44,7 @@ delayTime = time.time()
 timeCameraYOLO = time.time()
 screenSessione = 0 
 boolFlashlights = False
-switchProp = True
+switchProp = 1
 secchi_distance = None
 delayUpdateYOLOcam = 0.2           # delay between camera predictions 
 delayMissinput = 0.8               # delay between inputs 
@@ -137,12 +137,12 @@ with holoocean.make(
    #                scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(delayTime))
 
    # environment manager
-    env.water_fog(fogDensity=9.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0)
-   # env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #clear water condition
-   # env.change_weather(0) #0 - sunny, 1 - cloudy, and 2 - rainy
-    env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
-    env.air_fog(fogDensity=3,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
-   # env.turn_on_flashlight("flashlight1",100000,80)
+    env.water_fog(fogDensity=2.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0)
+    #env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #clear water condition
+    env.change_weather(0) #s0 - sunny, 1 - cloudy, and 2 - rainy
+    # env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
+    #env.air_fog(fogDensity=3,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
+   # senv.turn_on_flashlight("flashlight1",100000,80)
     env.change_time_of_day(14)
     
     last = {}
@@ -207,6 +207,7 @@ with holoocean.make(
                     "y": rovPos[1],
                     "z": rovPos[2]
                 }
+                #Secchi disc method
                 if switchProp == True:    
                     env.spawn_prop(prop_type="cylinder",
                                     location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
@@ -218,8 +219,45 @@ with holoocean.make(
                     env.spawn_prop(prop_type="sphere",
                                     location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
                                     rotation=[0.0,0.0,90.0],
-                                    scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
-                                        
+                                    scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))  
+                
+                """
+                #train on different shapess
+                match switchProp:
+                    case 1:
+                        env.spawn_prop(prop_type="sphere",
+                                    location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
+                                    rotation=[0.0,0.0,90.0],
+                                    sim_physics=False,
+                                    material="cobblestone",
+                                    tag=str(delayTime))
+                        switchProp = switchProp + 1
+                    case 2:
+                        env.spawn_prop(prop_type="box",
+                                location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
+                                rotation=[0.0,0.0,90.0],
+                                sim_physics=False,
+                                material="cobblestone",
+                                tag=str(delayTime))  
+                        switchProp = switchProp + 1
+                    case 3:
+                        env.spawn_prop(prop_type="cylinder",
+                                location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
+                                rotation=[0.0,0.0,90.0],
+                                sim_physics=False,
+                                material="cobblestone",
+                                tag=str(delayTime))  
+                        switchProp = switchProp + 1
+                    case 4:
+                        env.spawn_prop(prop_type="cone", #spawn test
+                                location=[rovPos["x"],rovPos["y"],rovPos["z"]-2],
+                                rotation=[0.0,0.0,90.0],
+                                sim_physics=False,
+                                material="cobblestone",
+                                tag=str(delayTime))  
+                        switchProp = 1
+                """            
+                              
 
         if controller.spawn_prop_key_p(): # not working 
             if inputUnavailable == False:
