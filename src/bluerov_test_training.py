@@ -105,7 +105,7 @@ def camera_YOLO(state, predictUnavailable, timeCameraYOLO):
         result_w_bound_box, results = yolo.detect_nosave(img6)
         turbidity = distanceDetector(results, result_w_bound_box, FOV)
        # distanceDetector(result_w_bound_box)
-        cv2.imshow("Accuracy runtime", result_w_bound_box)
+        cv2.imshow("Accuracy runtime", result_w_bound_box) # first obj dect img 
     return predictUnavailable, timeCameraYOLO
 
 scenario = (

@@ -4,13 +4,13 @@ from ultralytics import YOLO
 
 import torch
 import torchvision.ops as ops
-from nms import use_nms
+from utils.nms import use_nms
 
 class YoloModel:
 
     conf = 0.01
     imgsz = 320
-    iou = 0
+    iou = 0.1 # forgiveness of overlapping boxes
 
     def init_yolo_model(self):
         # Load a pretrained YOLO model (recommended for training)
@@ -27,7 +27,7 @@ class YoloModel:
             bbox_list = result.boxes.xyxy.tolist()          # bounding boxes all objects, you can also get xywh with boxes.xywh
             clss_list = result.boxes.cls.int().tolist()     # class index all objects
             conf_list = result.boxes.conf.tolist()          # confidence list all objects
-            for box, cls, conf in zip(bbox_list, clss_list, conf_list):  # Iterate over each bbox, cls and conf
+            for box, cls, conf in zip(bbox_list, clss_list, conf_list):  # Iterate over each bbox, cls and conf, zip puts the corr elem in same row
                 print(f"Bounding box: {box}, Class index: {cls}, Class name: {self.class_names[cls]}, Confidence: {conf}")
                 # ... any downstream task.
     
