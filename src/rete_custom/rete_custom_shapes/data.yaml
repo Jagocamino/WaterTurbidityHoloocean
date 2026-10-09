@@ -3,7 +3,7 @@ train: train/images
 val: validation/images
 nc: 4
 names:
-- box
-- cone
-- cylinder
-- sphere
+- Cone
+- Cube
+- Cylinder
+- Sphere

@@ -1,0 +1,42 @@
+nc: 80  # Sostituisci con il numero delle tue classi
+
+# Backbone di NLE-YOLO
+backbone:
+  # [from, number, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]       # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]      # 1-P2/4
+  - [-1, 1, C2fLEFEM, []]           # 2 (128 canali)
+  - [-1, 1, Conv, [256, 3, 2]]      # 3-P3/8
+  - [-1, 1, C2fLEFEM, []]           # 4 (256 canali)
+  - [-1, 1, AMRFB, []]              # 5 (256 canali)
+  - [-1, 1, Conv, [512, 3, 2]]      # 6-P4/16
+  - [-1, 1, C2fLEFEM, []]           # 7 (512 canali)
+  - [-1, 1, AMRFB, []]              # 8 (512 canali)
+  - [-1, 1, Conv, [1024, 3, 2]]     # 9-P5/32
+  - [-1, 1, C2fLEFEM, []]           # 10 (1024 canali)
+  - [-1, 1, SimSPPF, []]            # 11 (1024 canali)
+
+# Neck e Head di NLE-YOLO
+head:
+  - [-1, 1, Conv, [512, 1, 1]]      # 12 (Riduce 1024 -> 512)
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 13 (512)
+  - [[-1, 7], 1, Concat, [1]]       # 14 (Concatena 512+512 = 1024)
+  - [-1, 1, Conv, [512, 1, 1]]      # 15 (Riporta 1024 -> 512)
+  - [-1, 1, AMC2fLEFEM, []]         # 16 (512 canali)
+
+  - [-1, 1, Conv, [256, 1, 1]]      # 17 (512 -> 256)
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 18 (256)
+  - [[-1, 4], 1, Concat, [1]]       # 19 (Concatena 256+256 = 512)
+  - [-1, 1, Conv, [256, 1, 1]]      # 20 (Riporta 512 -> 256)
+  - [-1, 1, AMC2fLEFEM, []]         # 21 (256 canali) -> Output P3/8 (Piccoli oggetti)
+
+  - [-1, 1, Conv, [256, 3, 2]]      # 22 (256 -> 256)
+  - [[-1, 17], 1, Concat, [1]]      # 23 (Concatena 256+256 = 512)
+  - [-1, 1, AMC2fLEFEM, []]         # 24 (512 canali) -> Output P4/16 (Medi oggetti)
+
+  - [-1, 1, Conv, [512, 3, 2]]      # 25 (512 -> 512)
+  - [[-1, 12], 1, Concat, [1]]      # 26 (Concatena 512+512 = 1024)
+  - [-1, 1, Conv, [512, 1, 1]]      # 27 (Riporta 1024 -> 512)
+  - [-1, 1, AMC2fLEFEM, []]         # 28 (512 canali) -> Output P5/32 (Grandi oggetti)
+
+  - [[21, 24, 28], 1, Detect, [nc]] # 29 Head di rilevamento finale

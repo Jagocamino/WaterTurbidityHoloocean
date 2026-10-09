@@ -1,4 +1,4 @@
-box
-cone
-cylinder
-sphere
+Cone
+Cube
+Cylinder
+Sphere

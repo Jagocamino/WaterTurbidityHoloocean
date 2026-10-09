@@ -31,8 +31,8 @@ SENSOR_MAP = {
 
 rov0 = Rover.BlueROV2(
     name="rov0",
-    location=[0, -8, -3],
-    rotation=[0, 0, 90], # yaw = 90 top-down view
+    location=[700, -350, -9],       #location=[0, -8, -3],
+    rotation=[0, 0, 90],            # yaw = 90 top-down view
     control_scheme=0,
 )
 
@@ -106,11 +106,13 @@ def camera_YOLO(state, predictUnavailable, timeCameraYOLO):
         turbidity = distanceDetector(results, result_w_bound_box, FOV)
        # distanceDetector(result_w_bound_box)
         cv2.imshow("Accuracy runtime", result_w_bound_box) # first obj dect img 
+
+
     return predictUnavailable, timeCameraYOLO
 
 scenario = (
     ScenarioConfig("BlueROV_CustomOctree")
-    .set_world(World.Dam) #Rooms PierHarbor Dam 
+    .set_world(World.PierHarbor) #Rooms PierHarbor Dam 
     .add_agent(rov0)
 )
 
@@ -137,13 +139,13 @@ with holoocean.make(
    #                scale=[0.3,0.3,0.01],sim_physics=False,material="cobblestone",tag=str(delayTime))
 
    # environment manager
-    env.water_fog(fogDensity=2.8, fogDepth=1.0, color_R=0.4, color_G=0.6, color_B=1.0)
+    env.water_fog(fogDensity=6.5, fogDepth=0.5, color_R=0.4, color_G=0.6, color_B=1.0)
     #env.water_fog(fogDensity=0.0, fogDepth=0.0, color_R=0.0, color_G=0.0,color_B=0.0) #clear water condition
-    env.change_weather(0) #s0 - sunny, 1 - cloudy, and 2 - rainy
-    # env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
-    #env.air_fog(fogDensity=3,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
+    env.change_weather(0) # 0 - sunny, 1 - cloudy, and 2 - rainy
+    env.set_rain_parameters(0,400,-1000, 2000)  # Custom rain behavior   
+    env.air_fog(fogDensity=2,fogDepth=5.0,color_R=0.5,color_G=0.5,color_B=0.6) # o direttamente env.air_fog(2.2) per il val della denistà
    # senv.turn_on_flashlight("flashlight1",100000,80)
-    env.change_time_of_day(14)
+    env.change_time_of_day(14) #Secchi 14
     
     last = {}
 
@@ -169,7 +171,7 @@ with holoocean.make(
         }
 
         show_camera(state, "FrontCamera", "Front Camera")  
-        show_camera(state, "DownCamera", "Down Camera") # Top-to-bottom view, uso questo
+        show_camera(state, "DownCamera", "Down Camera") # Top-to-bottom view, use this
 
         if inputUnavailable == True: # delay input
             if delayTime + delayMissinput < time.time():
@@ -183,7 +185,7 @@ with holoocean.make(
             if inputUnavailable == False:
                 inputUnavailable = True                 
                 delayTime = time.time()
-                img6 = state["DownCamera"]
+                img6 = state["FrontCamera"] #TODO cambiata x addestrare DownCamera/FrontCamera
                 if img6 is not None:
                     img6 = np.asarray(img6)
                     if img6.ndim == 3 and img6.shape[2] >= 3:
@@ -207,6 +209,7 @@ with holoocean.make(
                     "y": rovPos[1],
                     "z": rovPos[2]
                 }
+                """
                 #Secchi disc method
                 if switchProp == True:    
                     env.spawn_prop(prop_type="cylinder",
@@ -256,7 +259,7 @@ with holoocean.make(
                                 material="cobblestone",
                                 tag=str(delayTime))  
                         switchProp = 1
-                """            
+                            
                               
 
         if controller.spawn_prop_key_p(): # not working 
@@ -285,7 +288,7 @@ with holoocean.make(
                                location=[newSecchiPos["x"],newSecchiPos["y"],newSecchiPos["z"]],
                                rotation=[round(rovRPY[0]),round(rovRPY[1]),round(rovRPY[2])],  # REGISTRA LA ROTAZIONE SBAGLIATA 
                                scale=[0.01,0.3,0.3],sim_physics=False,material="cobblestone",tag=str(delayTime))
-        
+
         predictUnavailable, timeCameraYOLO = camera_YOLO(state, predictUnavailable, timeCameraYOLO)
 
         if controller.flashlights_on_off_b():

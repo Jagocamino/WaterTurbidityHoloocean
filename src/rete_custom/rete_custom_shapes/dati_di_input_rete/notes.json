@@ -2,19 +2,19 @@
   "categories": [
     {
       "id": 0,
-      "name": "box"
+      "name": "Cone"
     },
     {
       "id": 1,
-      "name": "cone"
+      "name": "Cube"
     },
     {
       "id": 2,
-      "name": "cylinder"
+      "name": "Cylinder"
     },
     {
       "id": 3,
-      "name": "sphere"
+      "name": "Sphere"
     }
   ],
   "info": {
