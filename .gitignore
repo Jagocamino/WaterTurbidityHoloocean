@@ -3,9 +3,13 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# models
+# models and dataset
 *.pt
 *.zip
+*.cache
+datasets/
+pretrain/
+finetune/
 runs/
 
 # C extensions

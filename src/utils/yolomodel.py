@@ -32,8 +32,8 @@ class YoloModel:
 
         # ----- Load a YOLO model -----
 
-        #self.model = YOLO("./rete_custom_trained/model_5NLE/my_model.pt")
-        self.model = YOLO("./rete_custom_trained/model_26/my_model.pt")
+        self.model = YOLO("./rete_custom_trained/model_5NLE/my_model.pt")
+        #self.model = YOLO("./rete_custom_trained/model_26/my_model.pt")
         #self.model = YOLO("./rete_custom_trained/model_2/my_model.pt")
         #self.model = YOLO("./rete_custom_trained/model_shapes/my_model.pt")
 
